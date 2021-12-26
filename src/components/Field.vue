@@ -1,23 +1,20 @@
 <template>
-    <div class="field">
-      <template v-for="row in fields">
-        <div v-for="(col, index) in row" :class="['dots', col]" :key="index"></div>
-      </template>
-    </div>
+  <div class="field">
+    <template v-for="row in fields">
+      <div v-for="(col, index) in row" :class="['dots', col]" :key="index"></div>
+    </template>
+  </div>
 </template>
-
 <script>
 export default {
-  name: 'Field',
+  name: "Field",
   props: {
-    fields: Array
+    fields: Array,
   },
   data() {
-    return {
-
-    }
-  }
-}
+    return {};
+  },
+};
 </script>
 
 <style scoped>
@@ -34,7 +31,7 @@ export default {
 
 .snake {
   background: white;
- }
+}
 
 .food {
   background: pink;
