@@ -4,13 +4,13 @@
       <div class="title-container">
         <h1 class="nav-title">Snake Game</h1>
       </div>
-      <Navigation />
+      <Navigation :difficulty="difficulty" :length="body.length" :updateDifficulty="updateDifficulty" />
     </header>
     <main class="main">
       <Field :fields="fields" />
     </main>
     <footer class="footer">
-      <Button :onStart="onStart" :onRestart="onRestart" :status="status" />
+      <Button @onChangeStatus="updateStatus" :status="status" />
       <ManipulationPanel @onChange="onChangeDirection" />
     </footer>
   </div>
@@ -25,17 +25,15 @@ import { initFields, getFoodPosition } from "./utils";
 import {
   GameStatus,
   Direction,
-  // OppositeDirection,
+  OppositeDirection,
   Delta,
   DirectionKeyCodeMap,
+  defaultFieldSize,
+  initialBody,
+  initialValues,
+  defaultDifficulty,
+  Difficulty,
 } from "./constants";
-
-const defaultInterval = 100;
-const defaultFieldSize = 35;
-const initialBody = { x: 17, y: 17 };
-const initialFood = getFoodPosition(defaultFieldSize, [initialBody]);
-const initialValues = initFields(defaultFieldSize, initialBody, initialFood);
-// const initialValues = initFields(defaultFieldSize, initialBody, initialFood);
 
 export default {
   name: "App",
@@ -51,13 +49,16 @@ export default {
       fields: initialValues,
       status: GameStatus.init,
       body: [initialBody],
-      // food: initialFood,
       direction: Direction.up,
+      difficulty: defaultDifficulty,
     };
   },
   methods: {
-    onStart() {
-      this.status = GameStatus.playing;
+    playGame() {
+      if (this.status !== GameStatus.playing) {
+        return false;
+      }
+      const interval = Difficulty[this.difficulty - 1];
       this.timer = setInterval(() => {
         const newPosition = {
           x: this.body[0].x + Delta[this.direction].x,
@@ -66,17 +67,40 @@ export default {
         if (this.isCollision(newPosition)) {
           this.status = GameStatus.gameover;
         } else {
-          this.body = [newPosition];
+          const newBody = [...this.body];
+          if (this.fields[newPosition.y][newPosition.x] === "food") {
+            const newFood = getFoodPosition(defaultFieldSize, this.body);
+            this.fields[newFood.y][newFood.x] = "food";
+          } else {
+            const remove = newBody.pop();
+            this.fields[remove.y][remove.x] = "";
+          }
+          this.fields[newPosition.y][newPosition.x] = "snake";
+          newBody.unshift(newPosition);
+          this.body = newBody;
         }
-      }, defaultInterval);
+      }, interval);
     },
-    onRestart() {
-      this.status = GameStatus.init;
-      this.body = [initialBody];
-      this.direction = Direction.up;
+    onChangeDirection(newDirection) {
+      if (this.status !== GameStatus.playing) {
+        return;
+      }
+      if (OppositeDirection[this.direction] === newDirection) {
+        return;
+      }
+      this.direction = newDirection;
     },
-    onChangeDirection(direction) {
-      this.direction = direction;
+    updateDifficulty(difficulty) {
+      if (this.status !== GameStatus.init) {
+        return;
+      }
+      if (difficulty < 1 || difficulty > Difficulty.length) {
+        return;
+      }
+      this.difficulty = difficulty;
+    },
+    updateStatus(status) {
+      this.status = status;
     },
     isCollision(position) {
       if (position.y < 0 || position.x < 0) {
@@ -87,18 +111,36 @@ export default {
       }
       return false;
     },
+    isEatingMyself(position) {
+      return this.fields[position.y][position.x] === "snake";
+    },
   },
   watch: {
-    body: {
-      handler(next, prev) {
-        this.fields[prev[0].y][prev[0].x] = "";
-        this.fields[next[0].y][next[0].x] = "snake";
-      },
-      deep: true,
-    },
-    status(next) {
-      if (next == "gameover") {
-        clearInterval(this.timer);
+    // body: {
+    //   handler(next, prev) {
+    //     this.fields[prev[0].y][prev[0].x] = "";
+    //     this.fields[next[0].y][next[0].x] = "snake";
+    //   },
+    //   deep: true,
+    // },
+    status(newStatus) {
+      switch (newStatus) {
+        case GameStatus.init:
+          this.body = [initialBody];
+          this.direction = Direction.up;
+          this.fields = initFields(defaultFieldSize, initialBody, getFoodPosition(defaultFieldSize, [initialBody]));
+          break;
+        case GameStatus.gameover:
+          clearInterval(this.timer);
+          break;
+        case GameStatus.playing:
+          this.playGame();
+          break;
+        case GameStatus.suspended:
+          clearInterval(this.timer);
+          break;
+        default:
+          return;
       }
     },
   },
@@ -153,7 +195,7 @@ body {
   box-shadow: 0px 4px 1px 1px #97a5a5, 0px 6px 1px 1px #3c4a4a, 0px 0px 1px 1px #3c4a4a;
 }
 
-.title {
+.nav-title {
   margin: 0;
   padding: 8px;
   font-size: 1.1rem;

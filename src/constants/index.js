@@ -1,5 +1,8 @@
-// import { initFields, getFoodPosition } from "../utils";
+import { initFields, getFoodPosition } from "../utils";
 
+export const defaultFieldSize = 35;
+export const initialBody = { x: 17, y: 17 };
+export const initialValues = initFields(defaultFieldSize, initialBody, getFoodPosition(defaultFieldSize, [initialBody]));
 export const defaultDifficulty = 3;
 export const Difficulty = [1000, 500, 100, 50, 10];
 
